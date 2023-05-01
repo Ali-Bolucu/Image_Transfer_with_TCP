@@ -54,10 +54,16 @@ def multi_threaded_client(client_socket):
             
             client_socket.sendall((str(file_size)).encode())
             
-            picture_data = file.read(file_size)
+            picture_data = file.read(1024)
 
-            client_socket.sendall(picture_data)
-            
+			#client_socket.sendall(picture_data)
+            END_OF_TRANSMISSION = b'END'
+
+            while picture_data:
+                client_socket.send(picture_data)
+                picture_data = file.read(1024)
+                
+            client_socket.send(END_OF_TRANSMISSION)
             """
             while picture_data:
                 server_socket.send(picture_data)
@@ -69,16 +75,25 @@ def multi_threaded_client(client_socket):
             data = data.replace("\0", "")
             print(f"[Pic] {data[3:]}")
         
-            relative_path  = f'pictures\\{data[3:]}'
+            relative_path  = f'pictures/{data[3:]}'
             full_path = os.path.join(absolute_path, relative_path)           
 
             file = open(full_path, "wb")
 
-            size = client_socket.recv(1024).decode()
-            print(size)
+            #size = client_socket.recv(1024).decode()
+            #print(size)
+            
+            END_OF_TRANSMISSION = b'END'
 
-            image = client_socket.recv(int(size))
-            file.write(image)
+            image = client_socket.recv(1024)
+            
+            while not image.endswith(END_OF_TRANSMISSION):
+                file.write(image)
+                image = client_socket.recv(1024)
+
+                    
+            
+            #file.write(image)
             file.close()
 
         
