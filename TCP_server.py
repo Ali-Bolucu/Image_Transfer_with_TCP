@@ -2,6 +2,7 @@ import socket
 import os
 from _thread import *
 
+
 absolute_path = os.path.dirname(os.path.abspath(__file__))
 ThreadCount = 0
 
@@ -41,7 +42,7 @@ def multi_threaded_client(client_socket):
             data = data.replace("\0", "")
             print(f"[Pic] {data[3:]}")
         
-            relative_path  = f'pictures\\{data[3:]}'
+            relative_path  = f'pictures/{data[3:]}'
             full_path = os.path.join(absolute_path, relative_path)           
 
             print(full_path)
@@ -54,28 +55,59 @@ def multi_threaded_client(client_socket):
             
             client_socket.sendall((str(file_size)).encode())
             
-            picture_data = file.read(1024)
-
-			#client_socket.sendall(picture_data)
+            
+            
             END_OF_TRANSMISSION = b'END'
+            picture_data = file.read()
+			#client_socket.sendall(picture_data)
+   
+            packet_size = 1044
+            packet_number = 0
+            total_packet_number = file_size / 1024
+            
+            #len(picture_data)
+            
+            
+            
+            for i in range(0,len(picture_data) , 1024):
+                packet = int.to_bytes(packet_number, 4, 'big') 
+                packet += picture_data[i:i+1024]
+                checksum = 0
+                # for the last packet
+                if len(packet) < 1028:
+                    packet += b'\x00' * (1028 - len(packet))
+                
+                for i in range(0, 1023):
+                    #print(packet[4+i])
+                    checksum += packet[4+i]
 
+                packet += int.to_bytes(checksum, 4, 'big')
+                print( str(checksum))
+                packet_number += 1
+                
+                client_socket.send(packet)
+                ACK_NCK = client_socket.recv(4).decode('latin-1')
+                print(ACK_NCK + "\n")
+
+                
+            print(packet_number)
+                
+            """
             while picture_data:
                 client_socket.send(picture_data)
                 picture_data = file.read(1024)
+                file_size -= 1024
+            """          
                 
-            client_socket.send(END_OF_TRANSMISSION)
-            """
-            while picture_data:
-                server_socket.send(picture_data)
-                picture_data = file.read(1024)
-            """ 
+            #client_socket.send(END_OF_TRANSMISSION)
+
             file.close()
             
         if data[:3] == 'Rec':
             data = data.replace("\0", "")
             print(f"[Pic] {data[3:]}")
         
-            relative_path  = f'pictures/{data[3:]}'
+            relative_path  = f'pictures\\{data[3:]}'
             full_path = os.path.join(absolute_path, relative_path)           
 
             file = open(full_path, "wb")
