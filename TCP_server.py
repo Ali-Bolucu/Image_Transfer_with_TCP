@@ -50,6 +50,8 @@ def recv(full_path):
         TCP_Checksum = client_socket.recv(9).decode('latin-1')
         TCP_Checksum = TCP_Checksum.lstrip("0")
         
+        client_socket.sendall("ACK".encode())
+        
         print(TCP_PacketNumber)
         print(TCP_Checksum)
         print("\n")
@@ -150,7 +152,7 @@ def multi_threaded_client(client_socket):
             data = data.replace("\0", "")
             print(f"[Pic] {data[3:]}")
 
-            relative_path  = f'pictures\\{data[3:]}'
+            relative_path  = f'pictures/{data[3:]}'
             full_path = os.path.join(absolute_path, relative_path)      
             recv(full_path)
             
