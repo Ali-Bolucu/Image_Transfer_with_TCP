@@ -45,7 +45,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
    
 			totalPacketSize = 9 + 10240 + 9
 			TCP_PacketNumber = 1
-			packetSize = 10240
+			packetSize = 1024
 			localChecksum = 0
 			TCP_Checksum = 0
 
