@@ -1,6 +1,7 @@
 import socket
 import os
 from _thread import *
+import base64
 
 
 absolute_path = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +43,7 @@ def multi_threaded_client(client_socket):
             data = data.replace("\0", "")
             print(f"[Pic] {data[3:]}")
         
-            relative_path  = f'pictures\\{data[3:]}'
+            relative_path  = f'pictures/{data[3:]}'
             full_path = os.path.join(absolute_path, relative_path)           
 
             print(full_path)
@@ -58,7 +59,7 @@ def multi_threaded_client(client_socket):
    
             totalPacketSize = 9 + 1024 + 9
             TCP_PacketNumber = 1
-            packetSize = 8
+            packetSize = 1024
             localChecksum = 0
             TCP_Checksum = 0
 
@@ -70,28 +71,31 @@ def multi_threaded_client(client_socket):
                 
                 str_TCP_PacketNumber = '{:0>9}'.format(str(TCP_PacketNumber))
                 client_socket.send(str_TCP_PacketNumber.encode())
-                #print( str(TCP_PacketNumber))
+                print( str(TCP_PacketNumber))
                 TCP_PacketNumber += 1
-                
                 
                 packet = imageData[i:i+packetSize]
                 # for the last packet
                 if len(packet) < packetSize:
                     packet += b'\x00' * (packetSize - len(packet))
                 client_socket.send(packet)
+
                 
+
+            
                 TCP_Checksum = 0
                 for a in range(0, packetSize):
                     TCP_Checksum += packet[a]
                 str_TCP_Checksum = '{:0>9}'.format(str(TCP_Checksum))
                 client_socket.send(str_TCP_Checksum.encode())
+            
     
                 
                 
-                #print( str(TCP_Checksum))
+                print( str(TCP_Checksum))
                 
-                #ACK_NCK = client_socket.recv(4).decode('latin-1')
-                #print(ACK_NCK + "\n")
+                ACK_NCK = client_socket.recv(4).decode('latin-1')
+                print(ACK_NCK + "\n")
                 
                 
 
