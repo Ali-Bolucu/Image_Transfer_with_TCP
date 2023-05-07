@@ -2,7 +2,8 @@ import time
 import socket
 import os
 
-HOST = "127.0.0.1"  # The server's hostname or IP address
+#HOST = "127.0.0.1"  # The server's hostname or IP address
+HOST = "20.203.172.10"  # The server's hostname or IP address
 PORT = 8079  # The port used by the server
 
 absolute_path = os.path.dirname(os.path.abspath(__file__))
@@ -76,8 +77,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
 
 				print( str(TCP_Checksum))
 				
-				#ACK_NCK = client_socket.recv(4).decode('latin-1')
-				#print(ACK_NCK + "\n")
+				ACK_NCK = client_socket.recv(4).decode('latin-1')
+				print(ACK_NCK + "\n")
 				
 			file.close()
 		
