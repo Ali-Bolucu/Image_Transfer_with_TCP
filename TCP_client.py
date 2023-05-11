@@ -12,7 +12,7 @@ absolute_path = os.path.dirname(os.path.abspath(__file__))
 upper_directory = os.path.dirname(absolute_path)
 
 #upper ile değiştir
-folderPathCV = os.path.join(absolute_path, "imagesCV")
+folderPathCV = os.path.join(absolute_path, "image_process")
 folderPathMap = os.path.join(absolute_path, "imagesMap")
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
