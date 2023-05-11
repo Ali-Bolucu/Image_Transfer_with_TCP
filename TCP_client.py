@@ -94,33 +94,33 @@ def on_modified(event):
 if __name__ == "__main__":
     #rospy.init_node("tcp")
     
-	messageCom = "Recv"
-	messageCom ='{:0>10}'.format(messageCom)
-	client_socket.send(messageCom.encode('latin-1'))
- 
-	event_handler1 = LoggingEventHandler()
-	event_handler2 = LoggingEventHandler()
- 
-	event_handler1.on_modified = on_modified
-	event_handler2.on_modified = on_modified
- 
-	observer1 = Observer()
-	observer2 = Observer()
- 
-	observer1.schedule(event_handler1, folderPathCV, recursive=True)
-	observer2.schedule(event_handler2, folderPathMap, recursive=True)
- 
-	observer1.start()
-	observer2.start()
- 
-	try:
-		while True:
-			time.sleep(1)
-	except KeyboardInterrupt:
-		observer1.stop()
-		observer2.stop()
+    messageCom = "Recv"
+    messageCom ='{:0>10}'.format(messageCom)
+    client_socket.send(messageCom.encode('latin-1'))
 
-	observer1.join()
-	observer2.join()
+    event_handler1 = LoggingEventHandler()
+    event_handler2 = LoggingEventHandler()
+
+    event_handler1.on_modified = on_modified
+    event_handler2.on_modified = on_modified
+
+    observer1 = Observer()
+    observer2 = Observer()
+
+    observer1.schedule(event_handler1, folderPathCV, recursive=True)
+    observer2.schedule(event_handler2, folderPathMap, recursive=True)
+
+    observer1.start()
+    observer2.start()
+
+    try:
+        while True:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            observer1.stop()
+            observer2.stop()
+
+    observer1.join()
+    observer2.join()
  
 	
