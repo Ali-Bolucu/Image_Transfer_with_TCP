@@ -92,7 +92,7 @@ def on_modified(event):
 
 
 if __name__ == "__main__":
-    #rospy.init_node("tcp")
+    rospy.init_node("tcp")
     
     messageCom = "Recv"
     messageCom ='{:0>10}'.format(messageCom)
