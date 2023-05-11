@@ -29,9 +29,7 @@ def send(event):
 	file = open(file_path, 'rb')
 	imageSize = os.path.getsize(file_path)
 
-	messageCom = "Recv"
-	messageCom ='{:0>10}'.format(messageCom)
-	client_socket.send(messageCom.encode('latin-1'))
+
  
 	messageFolderName ='{:0>15}'.format(folder_name)
 	client_socket.send(messageFolderName.encode('latin-1'))
@@ -58,7 +56,7 @@ def send(event):
 	for i in range(0, len(imageData) , packetSize):
 					
 		str_TCP_PacketNumber = '{:0>9}'.format(str(TCP_PacketNumber))
-		client_socket.send(str_TCP_PacketNumber.encode())
+		client_socket.send(str_TCP_PacketNumber.encode('latin-1'))
 		print( str(TCP_PacketNumber))
 		TCP_PacketNumber += 1
 		
@@ -73,7 +71,7 @@ def send(event):
 		for a in range(0, packetSize):
 			TCP_Checksum += packet[a]
 		str_TCP_Checksum = '{:0>9}'.format(str(TCP_Checksum))
-		client_socket.send(str_TCP_Checksum.encode())
+		client_socket.send(str_TCP_Checksum.encode('latin-1'))
 
 		print(str(TCP_Checksum))
 		
@@ -97,31 +95,34 @@ def on_modified(event):
 
 if __name__ == "__main__":
     #rospy.init_node("tcp")
-    #rospy.loginfo("WASSUP BTCHES ̿̿ ̿̿ ̿̿ ̿'̿'\̵͇̿̿\з= ( ▀ ͜͞ʖ▀) =ε/̵͇̿̿/’̿’̿ ̿ ̿̿ ̿̿ ̿̿ ")
-
-    event_handler1 = LoggingEventHandler()
-    event_handler2 = LoggingEventHandler()
-
-    event_handler1.on_modified = on_modified
-    event_handler2.on_modified = on_modified
-
-    observer1 = Observer()
-    observer2 = Observer()
+    
+	messageCom = "Recv"
+	messageCom ='{:0>10}'.format(messageCom)
+	client_socket.send(messageCom.encode('latin-1'))
  
-    observer1.schedule(event_handler1, folderPathCV, recursive=True)
-    observer2.schedule(event_handler2, folderPathMap, recursive=True)
+	event_handler1 = LoggingEventHandler()
+	event_handler2 = LoggingEventHandler()
+ 
+	event_handler1.on_modified = on_modified
+	event_handler2.on_modified = on_modified
+ 
+	observer1 = Observer()
+	observer2 = Observer()
+ 
+	observer1.schedule(event_handler1, folderPathCV, recursive=True)
+	observer2.schedule(event_handler2, folderPathMap, recursive=True)
+ 
+	observer1.start()
+	observer2.start()
+ 
+	try:
+		while True:
+			time.sleep(1)
+	except KeyboardInterrupt:
+		observer1.stop()
+		observer2.stop()
 
-    observer1.start()
-    observer2.start()
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-	observer1.stop()
-	observer2.stop()
-
-    observer1.join()
-    observer2.join()
+	observer1.join()
+	observer2.join()
  
 	
