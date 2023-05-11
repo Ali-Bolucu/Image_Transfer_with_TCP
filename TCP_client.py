@@ -28,8 +28,6 @@ def send(event):
 
 	file = open(file_path, 'rb')
 	imageSize = os.path.getsize(file_path)
-
-
  
 	messageFolderName ='{:0>15}'.format(folder_name)
 	client_socket.send(messageFolderName.encode('latin-1'))
@@ -43,7 +41,7 @@ def send(event):
 
 	totalPacketSize = 9 + 10240 + 9
 	TCP_PacketNumber = 1
-	packetSize = 10240
+	packetSize = 1024
 	localChecksum = 0
 	TCP_Checksum = 0
 
@@ -55,8 +53,8 @@ def send(event):
 
 	for i in range(0, len(imageData) , packetSize):
 					
-		str_TCP_PacketNumber = '{:0>9}'.format(str(TCP_PacketNumber))
-		client_socket.send(str_TCP_PacketNumber.encode('latin-1'))
+		str_TCP_PacketNumber = '{:#>9}'.format(str(TCP_PacketNumber))
+		client_socket.send(str_TCP_PacketNumber.encode())
 		print( str(TCP_PacketNumber))
 		TCP_PacketNumber += 1
 		
@@ -70,8 +68,8 @@ def send(event):
 		TCP_Checksum = 0
 		for a in range(0, packetSize):
 			TCP_Checksum += packet[a]
-		str_TCP_Checksum = '{:0>9}'.format(str(TCP_Checksum))
-		client_socket.send(str_TCP_Checksum.encode('latin-1'))
+		str_TCP_Checksum = '{:#>9}'.format(str(TCP_Checksum))
+		client_socket.send(str_TCP_Checksum.encode())
 
 		print(str(TCP_Checksum))
 		
