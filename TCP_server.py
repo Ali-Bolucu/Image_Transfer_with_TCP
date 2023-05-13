@@ -4,6 +4,7 @@ import os
 from _thread import *
 from watchdog.observers import Observer
 from watchdog.events import LoggingEventHandler
+from functools import partial
 
 
 absolute_path = os.path.dirname(os.path.abspath(__file__))
@@ -11,17 +12,8 @@ folderPathCV = os.path.join(absolute_path, "imagesCV")
 folderPathMap = os.path.join(absolute_path, "imagesMap")
 
 ThreadCount = 0
-
 HOST = '0.0.0.0'
-PORT = 8079
 
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-server_socket.bind((HOST, PORT))
-print ("socket binded to %s" %(PORT))
-
-server_socket.listen() # how many ports to listen
-print(f"Server is listening on {HOST}:{PORT}...")
 
 
 def recv(full_path, client_socket):
@@ -36,7 +28,7 @@ def recv(full_path, client_socket):
     # variables
     totalPacketSize = 9 + 10240 + 9
     TCP_PacketNumber = 1
-    packetSize = 10240
+    packetSize = 1024
     localChecksum = 0
     TCP_Checksum = 0
 
@@ -52,12 +44,12 @@ def recv(full_path, client_socket):
     while not (TCP_TotalPacketNumber == TCP_PacketNumber) :
         
         TCP_PacketNumber = client_socket.recv(9).decode('latin-1')
-        TCP_PacketNumber = int(TCP_PacketNumber.lstrip("0"))
+        TCP_PacketNumber = int(TCP_PacketNumber.lstrip("#"))
         
-        imageData = client_socket.recv(10240)
+        imageData = client_socket.recv(1024)
         
         TCP_Checksum = client_socket.recv(9).decode('latin-1')
-        TCP_Checksum = int(TCP_Checksum.lstrip("0"))
+        TCP_Checksum = int(TCP_Checksum.lstrip("#"))
         
         localChecksum = 0
         for a in range(0, packetSize):
@@ -119,8 +111,8 @@ def send(client_socket, dir_path, imageName):
 
     for i in range(0, len(imageData) , packetSize):
         
-        str_TCP_PacketNumber = '{:0>9}'.format(str(TCP_PacketNumber))
-        client_socket.send(str_TCP_PacketNumber.encode())
+        str_TCP_PacketNumber = '{:0>6}'.format(str(TCP_PacketNumber))
+        client_socket.send(str_TCP_PacketNumber.encode('utf-8'))
         print( str(TCP_PacketNumber))
         TCP_PacketNumber += 1
         
@@ -134,8 +126,9 @@ def send(client_socket, dir_path, imageName):
         TCP_Checksum = 0
         for a in range(0, packetSize):
             TCP_Checksum += packet[a]
-        str_TCP_Checksum = '{:0>9}'.format(str(TCP_Checksum))
-        client_socket.send(str_TCP_Checksum.encode())
+        TCP_Checksum = TCP_Checksum % 256
+        str_TCP_Checksum = '{:0>5}'.format(str(TCP_Checksum))
+        client_socket.send(str_TCP_Checksum.encode('utf-8'))
     
         print( str(TCP_Checksum))
         
@@ -148,22 +141,31 @@ def send(client_socket, dir_path, imageName):
     file.close()
     
     
-def on_modified(event):
+def on_modified(client_socket, event):
     # call your function here
     file_path = event.src_path
     file_name = os.path.basename(file_path)
     folder_path = os.path.dirname(file_path)
-    
+    print(event)
+    time.sleep(5)
     send(client_socket, folder_path, file_name)
 
 
 
 # Creates a thread with connected device
-def multi_threaded_client(client_socket):
+def multi_threaded_client(PORT, server_socket):
+    while True:
+        client_socket, client_address = server_socket.accept()
+        print(f"[{PORT} - Client] connected")        
+
+        start_new_thread(new_client, (client_socket,PORT, ))
+        
+def new_client(client_socket, PORT):
+    
     Command = client_socket.recv(10).decode('latin-1')
     Command = Command.lstrip("0")
-    print(f"[Client] {Command}")
-        
+    print(f"[{PORT} - Client] {Command}")
+
     while True:
 
         if not Command:
@@ -171,11 +173,15 @@ def multi_threaded_client(client_socket):
         
         if Command[:4] == 'WDog':
             
+            client_global = client_socket
+            
             event_handler1 = LoggingEventHandler()
             event_handler2 = LoggingEventHandler()
         
-            event_handler1.on_modified = on_modified
-            event_handler2.on_modified = on_modified
+            on_modified_with_arg = partial(on_modified, client_socket)
+        
+            event_handler1.on_created = on_modified_with_arg
+            event_handler2.on_created = on_modified_with_arg
         
             observer1 = Observer()
             observer2 = Observer()
@@ -232,9 +238,23 @@ def multi_threaded_client(client_socket):
 #---------------------------------------------------
 
 if __name__ == "__main__":
-    while True:
+    PORT1 = 8079
+    server_socket1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket1.bind((HOST, PORT1))
+    print ("socket binded to %s" %(PORT1))
+    server_socket1.listen() # how many ports to listen
+    print(f"Server is listening on {HOST}:{PORT1}...")
+    start_new_thread(multi_threaded_client, (PORT1, server_socket1, ))
 
-        client_socket, client_address = server_socket.accept()
-        print(f"Connected by {client_address}")
+    PORT2 = 8078
+    server_socket2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket2.bind((HOST, PORT2))
+    print ("socket binded to %s" %(PORT2))
+    server_socket2.listen() # how many ports to listen
+    print(f"Server is listening on {HOST}:{PORT2}...")
+    start_new_thread(multi_threaded_client, (PORT2, server_socket2, ))
+    
+    while True:
+        time.sleep(1)
         
-        start_new_thread(multi_threaded_client, (client_socket, ))
+
