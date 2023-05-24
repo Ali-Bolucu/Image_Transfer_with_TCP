@@ -11,15 +11,15 @@ absolute_path = os.path.dirname(os.path.abspath(__file__))
 folderPathCV = os.path.join(absolute_path, "imagesCV")
 folderPathMap = os.path.join(absolute_path, "imagesMap")
 
-ThreadCount = 0
+
 HOST = '0.0.0.0'
 
 
 
 def recv(full_path, client_socket):
      
-    # creates a file in given path
-    file = open(full_path, "wb")
+    full_imageData = b''
+
 
     # receive the image size in 15 bytes
     imageSize = client_socket.recv(15).decode('latin-1')
@@ -28,7 +28,7 @@ def recv(full_path, client_socket):
     # variables
     totalPacketSize = 9 + 10240 + 9
     TCP_PacketNumber = 1
-    packetSize = 1024
+    packetSize = 10240
     localChecksum = 0
     TCP_Checksum = 0
 
@@ -47,7 +47,7 @@ def recv(full_path, client_socket):
         TCP_PacketNumber = int(TCP_PacketNumber.lstrip("#"))
         
         imageData = client_socket.recv(1024)
-        
+        full_imageData += imageData
         TCP_Checksum = client_socket.recv(9).decode('latin-1')
         TCP_Checksum = int(TCP_Checksum.lstrip("#"))
         
@@ -64,7 +64,10 @@ def recv(full_path, client_socket):
         print("Sent Packet Number : " + str(TCP_PacketNumber))
         print("Checksum of Packet: " + str(TCP_Checksum))
         print("\n")
-        file.write(imageData)
+        
+        # creates a file in given path
+        file = open(full_path, "wb")
+        file.write(full_imageData)
         
     print("END OF RECEIVE \n")   
     file.close()
@@ -146,98 +149,110 @@ def on_modified(client_socket, event):
     file_path = event.src_path
     file_name = os.path.basename(file_path)
     folder_path = os.path.dirname(file_path)
-    print(event)
-    time.sleep(5)
+    #print(event)
+    time.sleep(17)
     send(client_socket, folder_path, file_name)
 
 
 
 # Creates a thread with connected device
 def multi_threaded_client(PORT, server_socket):
+    ThreadCount = 0
     while True:
+
         client_socket, client_address = server_socket.accept()
-        print(f"[{PORT} - Client] connected")        
+        print(f"Thread:{ThreadCount} - [{PORT} - Client] Connected")        
 
-        start_new_thread(new_client, (client_socket,PORT, ))
+        start_new_thread(new_client, (client_socket,PORT, ThreadCount, ))
+        ThreadCount+=1
+
         
-def new_client(client_socket, PORT):
-    
-    Command = client_socket.recv(10).decode('latin-1')
-    Command = Command.lstrip("0")
-    print(f"[{PORT} - Client] {Command}")
-
-    while True:
-
-        if not Command:
-            break
+def new_client(client_socket, PORT, ThreadCount):
+    try:
+        Command = client_socket.recv(10).decode('latin-1')
+        Command = Command.lstrip("0")
         
-        if Command[:4] == 'WDog':
+        if Command:
+            print(f"[{PORT} - Client] {Command}")
+
+        while True:
             
-            client_global = client_socket
+            if not Command:
+                break
             
-            event_handler1 = LoggingEventHandler()
-            event_handler2 = LoggingEventHandler()
-        
-            on_modified_with_arg = partial(on_modified, client_socket)
-        
-            event_handler1.on_created = on_modified_with_arg
-            event_handler2.on_created = on_modified_with_arg
-        
-            observer1 = Observer()
-            observer2 = Observer()
-        
-            observer1.schedule(event_handler1, folderPathCV, recursive=True)
-            observer2.schedule(event_handler2, folderPathMap, recursive=True)
-        
-            observer1.start()
-            observer2.start()
-        
-            try:
-                while True:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                observer1.stop()
-                observer2.stop()
-
-            observer1.join()
-            observer2.join()
-        
-        
-        if Command[:4] == 'Subs':
-              
-            filesCV = os.listdir(folderPathCV)
-            for imageCV in filesCV:
-                send(client_socket, folderPathCV, imageCV)
+            if Command[:4] == 'WDog':
                 
+                client_global = client_socket
+                
+                event_handler1 = LoggingEventHandler()
+                event_handler2 = LoggingEventHandler()
             
-            filesMap = os.listdir(folderPathMap)
-            for imageMap in filesMap:
-                send(client_socket, folderPathMap, imageMap)
+                on_modified_with_arg = partial(on_modified, client_socket)
             
-            Command = 'WDog'
+                event_handler1.on_created = on_modified_with_arg
+                event_handler2.on_created = on_modified_with_arg
             
+                observer1 = Observer()
+                observer2 = Observer()
             
-        if Command[:4] == 'Recv':
+                observer1.schedule(event_handler1, folderPathCV, recursive=True)
+                observer2.schedule(event_handler2, folderPathMap, recursive=True)
+            
+                observer1.start()
+                observer2.start()
+            
+                try:
+                    while True:
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    observer1.stop()
+                    observer2.stop()
 
-            fileFolderName = client_socket.recv(15).decode('latin-1')
-            fileFolderName = fileFolderName.lstrip("0")
+                observer1.join()
+                observer2.join()
             
-            fileName = client_socket.recv(50).decode('latin-1')
-            fileName = fileName.lstrip("0")
             
-            print(f"[Recv ImageName] {fileFolderName} to {fileName} \n")
-            
-            full_path = os.path.join(fileFolderName, fileName)
-            full_path = os.path.join(absolute_path, full_path)
+            if Command[:4] == 'Subs':
+                
+                filesCV = os.listdir(folderPathCV)
+                for imageCV in filesCV:
+                    send(client_socket, folderPathCV, imageCV)
+                    
+                
+                filesMap = os.listdir(folderPathMap)
+                for imageMap in filesMap:
+                    send(client_socket, folderPathMap, imageMap)
+                
+                Command = 'WDog'
+                
+                
+            if Command[:4] == 'Recv':
 
-            recv(full_path, client_socket)
-            
+                fileFolderName = client_socket.recv(15).decode('latin-1')
+                fileFolderName = fileFolderName.lstrip("0")
+                
+                fileName = client_socket.recv(50).decode('latin-1')
+                fileName = fileName.lstrip("0")
+                
+                print(f"[Recv ImageName] {fileFolderName} to {fileName} \n")
+                
+                full_path = os.path.join(fileFolderName, fileName)
+                full_path = os.path.join(absolute_path, full_path)
+
+                recv(full_path, client_socket)
+                
+    except :
+        print(f"Thread:{ThreadCount} - [{PORT} - Client] Forcefully Disconnected")
+    else:
+        print(f"Thread:{ThreadCount} - [{PORT} - Client] Disconnected")   
+
             
             
         
 #---------------------------------------------------
 
 if __name__ == "__main__":
+    
     PORT1 = 8079
     server_socket1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket1.bind((HOST, PORT1))
