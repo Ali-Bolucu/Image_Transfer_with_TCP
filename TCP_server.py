@@ -28,7 +28,7 @@ def recv(full_path, client_socket):
     # variables
     totalPacketSize = 9 + 10240 + 9
     TCP_PacketNumber = 1
-    packetSize = 10240
+    packetSize = 512
     localChecksum = 0
     TCP_Checksum = 0
 
@@ -46,7 +46,7 @@ def recv(full_path, client_socket):
         TCP_PacketNumber = client_socket.recv(9).decode('latin-1')
         TCP_PacketNumber = int(TCP_PacketNumber.lstrip("#"))
         
-        imageData = client_socket.recv(1024)
+        imageData = client_socket.recv(packetSize)
         full_imageData += imageData
         TCP_Checksum = client_socket.recv(9).decode('latin-1')
         TCP_Checksum = int(TCP_Checksum.lstrip("#"))
@@ -55,13 +55,14 @@ def recv(full_path, client_socket):
         for a in range(0, packetSize):
             localChecksum += imageData[a]
 
-        if localChecksum == TCP_Checksum :
-            client_socket.sendall("ACK".encode())
-        else :
-            client_socket.sendall("NCK".encode())
+        if ((TCP_PacketNumber % 40) == 0) or (TCP_PacketNumber == TCP_TotalPacketNumber):
+            if localChecksum == TCP_Checksum :
+                client_socket.sendall("ACK".encode())
+            else :
+                client_socket.sendall("NCK".encode())
         
         
-        print("Sent Packet Number : " + str(TCP_PacketNumber))
+        print("Received Packet Number : " + str(TCP_PacketNumber))
         print("Checksum of Packet: " + str(TCP_Checksum))
         print("\n")
         
@@ -99,7 +100,7 @@ def send(client_socket, dir_path, imageName):
 
     totalPacketSize = 9 + 10240 + 9
     TCP_PacketNumber = 1
-    packetSize = 10240
+    packetSize = 20480
     localChecksum = 0
     TCP_Checksum = 0
 
@@ -135,6 +136,7 @@ def send(client_socket, dir_path, imageName):
     
         print( str(TCP_Checksum))
         
+
         ACK_NCK = client_socket.recv(4).decode('latin-1')
         print(ACK_NCK + "\n")
         
@@ -150,7 +152,7 @@ def on_modified(client_socket, event):
     file_name = os.path.basename(file_path)
     folder_path = os.path.dirname(file_path)
     #print(event)
-    time.sleep(17)
+    time.sleep(1)
     send(client_socket, folder_path, file_name)
 
 
@@ -189,8 +191,8 @@ def new_client(client_socket, PORT, ThreadCount):
             
                 on_modified_with_arg = partial(on_modified, client_socket)
             
-                event_handler1.on_created = on_modified_with_arg
-                event_handler2.on_created = on_modified_with_arg
+                event_handler1.on_modified = on_modified_with_arg
+                event_handler2.on_modified = on_modified_with_arg
             
                 observer1 = Observer()
                 observer2 = Observer()
