@@ -3,7 +3,7 @@ import socket
 import os
 from _thread import *
 from watchdog.observers import Observer
-from watchdog.events import LoggingEventHandler
+from watchdog.events import FileSystemEventHandler
 from functools import partial
 
 
@@ -147,15 +147,34 @@ def send(client_socket, dir_path, imageName):
     
     
 def on_modified(client_socket, event):
-    # call your function here
-    file_path = event.src_path
-    file_name = os.path.basename(file_path)
-    folder_path = os.path.dirname(file_path)
-    #print(event)
-    time.sleep(1)
-    send(client_socket, folder_path, file_name)
+    if not event.is_directory:
+        file_path = event.src_path
+        file_name = os.path.basename(file_path)
+        folder_path = os.path.dirname(file_path)
+        print(file_path)
+        time.sleep(5)
+        send(client_socket, folder_path, file_name)
 
 
+class FileModifiedHandler(FileSystemEventHandler):
+    counter = 0
+    def __init__(self, client_socket):
+        super().__init__()
+        self.client_socket = client_socket    
+        
+        
+    def on_modified(self, event):
+        self.counter += 1
+        if (not event.is_directory) and (self.counter % 2 == 0):
+            file_path = event.src_path
+            file_name = os.path.basename(file_path)
+            folder_path = os.path.dirname(file_path)
+            print(file_path)
+            if file_name:
+                time.sleep(5)
+                send(self.client_socket, folder_path, file_name)
+                
+            
 
 # Creates a thread with connected device
 def multi_threaded_client(PORT, server_socket):
@@ -184,15 +203,9 @@ def new_client(client_socket, PORT, ThreadCount):
             
             if Command[:4] == 'WDog':
                 
-                client_global = client_socket
-                
-                event_handler1 = LoggingEventHandler()
-                event_handler2 = LoggingEventHandler()
+                event_handler1 = FileModifiedHandler(client_socket)
+                event_handler2 = FileModifiedHandler(client_socket)
             
-                on_modified_with_arg = partial(on_modified, client_socket)
-            
-                event_handler1.on_modified = on_modified_with_arg
-                event_handler2.on_modified = on_modified_with_arg
             
                 observer1 = Observer()
                 observer2 = Observer()
