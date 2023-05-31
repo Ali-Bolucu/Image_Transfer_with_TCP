@@ -270,6 +270,7 @@ if __name__ == "__main__":
     
     PORT1 = 8079
     server_socket1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket1 .setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     server_socket1.bind((HOST, PORT1))
     print ("socket binded to %s" %(PORT1))
     server_socket1.listen() # how many ports to listen
@@ -278,6 +279,7 @@ if __name__ == "__main__":
 
     PORT2 = 8078
     server_socket2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket2 .setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     server_socket2.bind((HOST, PORT2))
     print ("socket binded to %s" %(PORT2))
     server_socket2.listen() # how many ports to listen
