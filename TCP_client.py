@@ -16,6 +16,7 @@ folderPathCV = os.path.join(absolute_path, "imagesCV")
 folderPathMap = os.path.join(absolute_path, "imagesMap")
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 client_socket.connect((HOST, PORT))
 
 
@@ -41,7 +42,7 @@ def send(event):
 
 	totalPacketSize = 9 + 512*40 + 9
 	TCP_PacketNumber = 1
-	packetSize = 256
+	packetSize = 512
 	localChecksum = 0
 	TCP_Checksum = 0
 
@@ -53,9 +54,10 @@ def send(event):
 
 	for i in range(0, len(imageData) , packetSize):
 					
-		str_TCP_PacketNumber = '{:#>9}'.format(str(TCP_PacketNumber))
-		client_socket.send(str_TCP_PacketNumber.encode())
+		str_TCP_PacketNumber = '{:0>9}'.format(str(TCP_PacketNumber))
+		client_socket.send(str_TCP_PacketNumber.encode('latin-1'))
 		print( str(TCP_PacketNumber))
+		print(str(str_TCP_PacketNumber.encode()) + "\n")
 		
 		
 		packet = imageData[i:i+packetSize]
@@ -68,12 +70,13 @@ def send(event):
 		TCP_Checksum = 0
 		for a in range(0, packetSize):
 			TCP_Checksum += packet[a]
-		str_TCP_Checksum = '{:#>9}'.format(str(TCP_Checksum))
-		client_socket.send(str_TCP_Checksum.encode())
+   
+		str_TCP_Checksum = '{:0>9}'.format(str(TCP_Checksum))
+		client_socket.send(str_TCP_Checksum.encode('latin-1'))
 
 		print(str(TCP_Checksum) + "\n")
 		
-		if ((TCP_PacketNumber % 50) == 0) or (TCP_PacketNumber == TCP_TotalPacketNumber):
+		if (TCP_PacketNumber == TCP_TotalPacketNumber):
 			ACK_NCK = client_socket.recv(4).decode('latin-1')
 			print(ACK_NCK + "\n")
    
@@ -85,14 +88,16 @@ def send(event):
 
 class FileModifiedHandler(FileSystemEventHandler):
         
-    def on_modified(self, event):
-        if (not event.is_directory):
-            file_path = event.src_path
-            file_name = os.path.basename(file_path)
-            folder_path = os.path.dirname(file_path)
-            print(file_path)
-            if file_name:
-                send(event)
+	def on_modified(self, event):
+		print(file_path)
+		if (not event.is_directory):
+			file_path = event.src_path
+			file_name = os.path.basename(file_path)
+			folder_path = os.path.dirname(file_path)
+            
+			print(file_path)
+			if file_name:
+				send(event)
 
 
 
